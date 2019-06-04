@@ -6,11 +6,12 @@ A Clojure library designed to transform SQL to JSON.
 
 Transformação de estrutura SQL em JSON:
 
-sql
+```sql
 SELECT CAMPO_1, CAMPO_2 FROM TABELA_1 WHERE CAMPO_1 != 2 GROUP BY CAMPO 2 CAMPO 1 ORDER BY CAMPO_2;
+```
 
 Exemplo:
-json
+```json
 {
     "operacao": "SELECT",
     "fonte_dados": "TABELA_1",
@@ -19,13 +20,14 @@ json
     "agrupado_por": [ "CAMPO_2" "CAMPO_1"],
     "ordenado_por": [ "CAMPO_2"]
 }
-sql
+```
+```sql
 SELECT CAMPO_2 FROM 
     (SELECT CAMPO_1, CAMPO_2, CAMPO_3 FROM TABELA_1 WHERE CAMPO_1 != 2 AND CAMPO_1 != CAMPO_3) 
 WHERE CAMPO_2 IS NOT NULL GROUP BY CAMPO_2  ORDER BY CAMPO_2;
 Exemplo:
-
-json
+```
+```json
 {
     "operacao": "SELECT",
     "fonte_dados": {
@@ -43,6 +45,7 @@ json
     "agrupado_por": [ "CAMPO_2" "CAMPO_1"],
     "ordenado_por": [ "CAMPO_2"]
 }
+```
 
 ## Usage
 
