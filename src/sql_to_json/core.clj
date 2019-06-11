@@ -6,7 +6,6 @@
   [x]
   (println x "Hello, World!"))
 
-(defn tokenize [string] (str/split string #" "))
 
 
 ;Dicionario

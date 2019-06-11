@@ -1,5 +1,6 @@
 (ns sql-to-json.core-test
   (:require [clojure.test :refer :all]
+  [clojure.string :as str]
             [sql-to-json.core :refer :all]))
 
 
@@ -15,6 +16,14 @@
     (throw "Operação inválida"))
 )
 
+;Extrai colunas até o From (colunas específicadas)
+(defn extract-columns [expressions & {:keys [vet]  :or {vet (vector)}}]  
+    (if (= (first expressions) "FROM") 
+    vet
+    (extract-columns (rest expressions) :vet (conj vet {:field (first expressions) }))
+    ) 
+)
+
 ;extrai colunas (método para todos os cenários)
 (defn parse-columns [expressions]
   (if (= (first (get expressions 0)) "*") 
@@ -23,13 +32,6 @@
   )
 )
 
-;Extrai colunas até o From (colunas específicadas)
-(defn extract-columns [expressions & {:keys [vet]  :or {vet (vector)}}]  
-    (if (= (first expressions) "FROM") 
-    vet
-    (extract-columns (rest expressions) :vet (conj vet {:field (first expressions) }))
-    ) 
-)
 
 (extract-columns ["COLUNA_1," "COLUNA_2", "FROM" "TABELA_1"])  ;Teste do método
 
