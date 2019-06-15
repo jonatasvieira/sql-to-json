@@ -23,7 +23,8 @@
 (defn extract-columns [state & {:keys [vet]  :or {vet (vector)}}]  
     (if (= (first (get-tokens state)) "FROM") 
     [ (get-tokens state) (assoc (get-flat-tree state) :campos vet)]
-    (extract-columns [(rest (get-tokens(state))) (get-flat-tree state)] :vet (conj vet {:field (first (get-tokens state)) }))
+    (extract-columns [(rest (get-tokens state)) (get-flat-tree state)] 
+                    :vet (conj vet {:field (clojure.string/replace (first (get-tokens state)) #"," "") }))
     ) 
 )
 
@@ -31,14 +32,14 @@
 (defn parse-columns [state]  
   (if (= (first (get-tokens state)) "*") 
   [(rest (get-tokens state)) (assoc (get-flat-tree state) :campos :all)]
-  [(extract-columns state)]
+  (extract-columns state)
   )
 )
 
-;(extract-columns [["COLUNA_1," "COLUNA_2", "FROM" "TABELA_1"] {:operacao :select}])  ;Teste do método
+(extract-columns [["COLUNA_1," "COLUNA_2", "FROM" "TABELA_1"] {:operacao :select}])  ;Teste do método
 
 (defn parse-data-source [state]
-  (if (= (first (get-tokens state) "FROM"))
+  (if (= (first (get-tokens state)) "FROM")
     [(rest (get-tokens state))   (assoc (get-flat-tree state) :data-source (second (get-tokens state)))]
     (throw "Operador FROM não informado.")
   )
@@ -61,15 +62,24 @@
 
 (deftest operation-parser
   (testing "Expressão som select deve retornar nó corretamente"
-    (= (count (get-tokens (parse-operation (tokenize operacao-mais-simples)))) 3) ;Vetor não deve mais conter select no retorno
-    (= ((get-flat-tree (parse-operation (tokenize operacao-mais-simples))) :campos) "*") ;Operação deve ser select
+    (is (= (count (get-tokens (parse-operation (tokenize operacao-mais-simples)))) 3)) ;Vetor não deve mais conter select no retorno
+    (is (= ((get-flat-tree (parse-operation (tokenize operacao-mais-simples))) :operacao) :select)) ;Operação deve ser select
   )
 )
 
 (deftest columns-parser
   (testing "Coluna deve ser trazida corretamente"
-    (= (count (get-tokens (parse-columns (parse-operation (tokenize operacao-mais-simples))))) 2) ;Vetor só deve conter conteúdo após FROM
-    (= ((get-flat-tree (parse-columns (parse-operation (tokenize operacao-mais-simples)))) :operacao) "SELECT") ;Coluna deve ter o identificador *
-    ;(= ((get (parse-columns (parse-operation (tokenize operacao-com-colunas))) 1) :operacao) "SELECT")
+    (is (= (count (get-tokens (parse-columns (parse-operation (tokenize operacao-mais-simples))))) 2)) ;Vetor só deve conter conteúdo após FROM
+    (is (= ((get-flat-tree (parse-columns (parse-operation (tokenize operacao-mais-simples)))) :campos) :all)) ;Coluna deve ter o identificador *
+
+    (is (= (count (get-tokens (parse-columns (parse-operation (tokenize operacao-com-colunas))))) 2)) 
+    (is (= ((first ((get-flat-tree (parse-columns (parse-operation (tokenize operacao-com-colunas)))) :campos)) :field) "CAMPO_1"))
+    (is (= ((second ((get-flat-tree (parse-columns (parse-operation (tokenize operacao-com-colunas)))) :campos)) :field) "CAMPO_2"))
+  )
+)
+
+(deftest data-source-parser
+  (testing "Fonte dos dados deve ser trazida corretamente"
+    ;(is (= ((parse-data-source (parse-columns (parse-operation (tokenize operacao-com-colunas)))) :data-source) "SOMETHING") )
   )
 )
