@@ -3,12 +3,14 @@
 
 (defn parse [sql-stmt]
   (print sql-stmt))
-  
+
 ;Quebra em tokens          
 (defn tokenize [string] (str/split string #" "))
 
 (defn get-tokens [state] (get state 0))
 (defn get-flat-tree [state] (get state 1))
+
+(defn remover-caracteres-especiais [string] (clojure.string/replace string  #"[,;]" "") )
 
 ;Define nome da operação
 (defn parse-operation [state]
@@ -22,7 +24,7 @@
     (if (= (first (get-tokens state)) "FROM") 
     [ (get-tokens state) (assoc (get-flat-tree state) :campos vet)]
     (extract-columns [(rest (get-tokens state)) (get-flat-tree state)] 
-                    :vet (conj vet {:field (clojure.string/replace (first (get-tokens state)) #"," "") }))
+                    :vet (conj vet {:field (remover-caracteres-especiais(first (get-tokens state))) }))
     ) 
 )
 
@@ -38,7 +40,7 @@
 
 (defn parse-data-source [state]
   (if (= (first (get-tokens state)) "FROM")
-    [(rest (get-tokens state))   (assoc (get-flat-tree state) :data-source (second (get-tokens state)))]
+    [(rest (get-tokens state))   (assoc (get-flat-tree state) :data-source (remover-caracteres-especiais (second (get-tokens state))))]
     (throw "Operador FROM não informado.")
   )
 )
@@ -50,5 +52,4 @@
 (def operacao-com-colunas  "SELECT CAMPO_1, CAMPO_2 FROM SOMETHING;")
 
 (defn teste [& {:keys [var]  :or {var 10}}] var) ;Exemplo de parâmetro opcional
-                
                 
