@@ -12,6 +12,8 @@
 (defn get-tokens [state] (get state 0))
 (defn get-flat-tree [state] (get state 1))
 
+(defn remover-caracteres-especiais [string] (clojure.string/replace string  #"[,;]" "") )
+
 ;Define nome da operação
 (defn parse-operation [state]
   (if (= (state 0) "SELECT") 
@@ -24,7 +26,7 @@
     (if (= (first (get-tokens state)) "FROM") 
     [ (get-tokens state) (assoc (get-flat-tree state) :campos vet)]
     (extract-columns [(rest (get-tokens state)) (get-flat-tree state)] 
-                    :vet (conj vet {:field (clojure.string/replace (first (get-tokens state)) #"," "") }))
+                    :vet (conj vet {:field (remover-caracteres-especiais(first (get-tokens state))) }))
     ) 
 )
 
@@ -40,7 +42,7 @@
 
 (defn parse-data-source [state]
   (if (= (first (get-tokens state)) "FROM")
-    [(rest (get-tokens state))   (assoc (get-flat-tree state) :data-source (second (get-tokens state)))]
+    [(rest (get-tokens state))   (assoc (get-flat-tree state) :data-source (remover-caracteres-especiais (second (get-tokens state))))]
     (throw "Operador FROM não informado.")
   )
 )
@@ -80,6 +82,6 @@
 
 (deftest data-source-parser
   (testing "Fonte dos dados deve ser trazida corretamente"
-    ;(is (= ((parse-data-source (parse-columns (parse-operation (tokenize operacao-com-colunas)))) :data-source) "SOMETHING") )
+    (is (= ((second (parse-data-source (parse-columns (parse-operation (tokenize operacao-com-colunas))))) :data-source) "SOMETHING") )
   )
 )
