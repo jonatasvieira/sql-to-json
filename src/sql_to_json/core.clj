@@ -1,15 +1,6 @@
-(ns sql-to-json.core)
-(require '[clojure.string :as str])
+(ns sql-to-json.core
+  (:require [sql-to-json.parser :refer :all]))
 
-(defn foo
-  "I don't do a whole lot."
-  [x]
-  (println x "Hello, World!"))
-
-
-
-;Dicionario
-(def dicionario {
-  :select (str "SELECT")
-  :all (str "*")
-})
+; main function
+(defn -main [sql-stmt]
+  (parse sql-stmt))
