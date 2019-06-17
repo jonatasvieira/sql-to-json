@@ -1,8 +1,18 @@
 (ns sql-to-json.parser)
 (require '[clojure.string :as str])
+(require '[clojure.set :as cjt])
 
 (defn parse [sql-stmt]
   (print sql-stmt))
+
+(def conditions [">" "<" ">=" "<=" "="])
+
+(defn get-operation [condition]
+   (def matched-conditions (cjt/intersection (set (map #(str %) condition)) (set conditions)))
+    (if (= (.size matched-conditions) 1)
+      (first matched-conditions)
+      ;Created set was reversing condition(">=" was "=>")
+      (apply str (reverse matched-conditions))))
 
 ;Quebra em tokens          
 (defn tokenize [string] (str/split string #" "))
@@ -10,7 +20,7 @@
 (defn get-tokens [state] (get state 0))
 (defn get-flat-tree [state] (get state 1))
 
-(defn remover-caracteres-especiais [string] (clojure.string/replace string  #"[,;]" "") )
+(defn remover-caracteres-especiais [string] (str/replace string  #"[,;]" "") )
 
 ;Define nome da operação
 (defn parse-operation [state]
@@ -36,20 +46,31 @@
   )
 )
 
-(extract-columns [["COLUNA_1," "COLUNA_2", "FROM" "TABELA_1"] {:operacao :select}])  ;Teste do método
-
 (defn parse-data-source [state]
   (if (= (first (get-tokens state)) "FROM")
     [(rest (get-tokens state))   (assoc (get-flat-tree state) :data-source (remover-caracteres-especiais (second (get-tokens state))))]
     (throw "Operador FROM não informado.")
   )
 )
+; extrai as condições (depois do WHERE)
+; Supoe que o statement sql esta assim:
+; SELECT FIELD_1, FIELD_2 FROM TABLENAME WHERE FIELD_1.ID>=10 AND ... AND ... INNER JOIN ... ORDER BY ... GROUP BY ...
+(defn parse-conditions [state]
+  (def conditions-block (rest (get-tokens state)))
+  (def first-element-condition (first (get-tokens state)))
 
+  (if (or (= first-element-condition "WHERE") (= first-element-condition "AND"))
+    (if (contains? (get-flat-tree state) :conditions)
+      (def conditions (get (get-flat-tree state) :conditions))
+      [(rest (get-tokens state)) (assoc (get-flat-tree state) :conditions (conj conditions (build-conditions-map (second (get-tokens state)))))]
+      [(rest (get-tokens state)) (assoc (get-flat-tree state) :conditions [(build-conditions-map (second (get-tokens state)))]))
 
-
-;Expressão testada
-(def operacao-mais-simples  "SELECT * FROM SOMETHING;")
-(def operacao-com-colunas  "SELECT CAMPO_1, CAMPO_2 FROM SOMETHING;")
-
-(defn teste [& {:keys [var]  :or {var 10}}] var) ;Exemplo de parâmetro opcional
-                
+(defn build-conditions-map [conditions]
+  (def conditions-vet (extract-condition conditions))
+  {:left-field (first conditions-vet) :operator (second conditions-vet) :right-field (get conditions-vet 2)})
+  
+;Retorna os tres elementos passados (ex. id=10 é retornado como ["id" "=" "10"]
+(defn extract-condition [cond-stmt]
+  (def operation (get-operation cond-stmt))
+  (def pos-arr (str/split cond-stmt (re-pattern operation)))
+  [(first pos-arr) operation (second pos-arr)])
