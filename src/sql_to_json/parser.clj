@@ -2,8 +2,6 @@
 (require '[clojure.string :as str])
 (require '[clojure.set :as cjt])
 
-(defn parse [sql-stmt]
-  (print sql-stmt))
 
 (def conditions [">" "<" ">=" "<=" "="])
 
@@ -48,29 +46,39 @@
 
 (defn parse-data-source [state]
   (if (= (first (get-tokens state)) "FROM")
-    [(rest (get-tokens state))   (assoc (get-flat-tree state) :data-source (remover-caracteres-especiais (second (get-tokens state))))]
+    [(rest (rest (get-tokens state)))   (assoc (get-flat-tree state) :data-source (remover-caracteres-especiais (second (get-tokens state))))]
     (throw "Operador FROM não informado.")
   )
 )
-; extrai as condições (depois do WHERE)
-; Supoe que o statement sql esta assim:
-; SELECT FIELD_1, FIELD_2 FROM TABLENAME WHERE FIELD_1.ID>=10 AND ... AND ... INNER JOIN ... ORDER BY ... GROUP BY ...
-(defn parse-conditions [state]
-  (def conditions-block (rest (get-tokens state)))
-  (def first-element-condition (first (get-tokens state)))
 
-  (if (or (= first-element-condition "WHERE") (= first-element-condition "AND"))
-    (if (contains? (get-flat-tree state) :conditions)
-      (def conditions (get (get-flat-tree state) :conditions))
-      [(rest (get-tokens state)) (assoc (get-flat-tree state) :conditions (conj conditions (build-conditions-map (second (get-tokens state)))))]
-      [(rest (get-tokens state)) (assoc (get-flat-tree state) :conditions [(build-conditions-map (second (get-tokens state)))]))
-
-(defn build-conditions-map [conditions]
-  (def conditions-vet (extract-condition conditions))
-  {:left-field (first conditions-vet) :operator (second conditions-vet) :right-field (get conditions-vet 2)})
-  
 ;Retorna os tres elementos passados (ex. id=10 é retornado como ["id" "=" "10"]
 (defn extract-condition [cond-stmt]
   (def operation (get-operation cond-stmt))
   (def pos-arr (str/split cond-stmt (re-pattern operation)))
   [(first pos-arr) operation (second pos-arr)])
+
+(defn build-conditions-map [conditions]
+  (def conditions-vet (extract-condition conditions))
+  {:left-field (first conditions-vet) :operator (second conditions-vet) :right-field (get conditions-vet 2)})
+  
+
+; extrai as condições (depois do WHERE)
+; Supoe que o statement sql esta assim:
+; SELECT FIELD_1, FIELD_2 FROM TABLENAME WHERE FIELD_1.ID>=10 AND ... AND ... INNER JOIN ... ORDER BY ... GROUP BY ...
+(defn parse-conditions [state]
+  (if (or (= (first (get-tokens state)) "WHERE") (= (first (get-tokens state)) "AND"))
+    (if  (contains? (get-flat-tree state) :conditions)
+      (parse-conditions [(rest (rest (get-tokens state))) (assoc (get-flat-tree state) :conditions (conj (get (get-flat-tree state) :conditions) (build-conditions-map (second (get-tokens state)))))])
+      ; returns one condition state
+      (parse-conditions  [(rest (rest (get-tokens state))) (assoc (get-flat-tree state) :conditions [(build-conditions-map (second (get-tokens state)))])]))
+    ;return original state array
+    [(get-tokens state) (get-flat-tree state)]))
+   
+
+
+(defn parse [sql-stmt]
+  (parse-conditions
+  (parse-data-source
+  (parse-columns 
+  (parse-operation 
+    (tokenize sql-stmt))))))
