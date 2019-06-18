@@ -64,8 +64,8 @@
   )
 )
 
-(defn parse-inner-join-conditions [state]
-  (loop [block (get-tokens state) condicoes []]
+(defn parse-inner-join-conditions [tokens]
+  (loop [block tokens condicoes []]
     (when (>= (count block) 3) 
       (assoc condicoes (parse-condicao block))
       (if (= (nth block 4) "AND" ) 
@@ -81,14 +81,16 @@
     [(get-tokens state) (get-flat-tree state)] ;Caso não possua join, retorna os valores sem alteração
     (cond
       (not (= (nth (get-tokens state) 4) "ON")) (throw "Join precisa de ao menos uma condição")
-      (= (first (get-tokens state))  "INNER") ( (map #(vector (get-tokens %) (assoc state (assoc {:join (get-flat-tree %)} :type :inner :table (nth (get-tokens state) 3) )) 
-                                                  (parse-inner-join-conditions (subvec (get-tokens state) 4))) 
-                                                )
+      (= (first (get-tokens state))  "INNER") ((fn [exp]
+                    [
+                      (get-tokens exp)
+                      (assoc (get-flat-tree state) :join {:condicoes (get-flat-tree exp) :type :inner :table (nth (get-tokens state) 3) } )
+                    ])
+                    (parse-inner-join-conditions (subvec (get-tokens state) 4))
       )
     )
   )
 )
-
 
 ;Expressão testada
 (def operacao-mais-simples  "SELECT * FROM SOMETHING;")

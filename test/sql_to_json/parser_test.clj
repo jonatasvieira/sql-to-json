@@ -31,7 +31,8 @@
 (deftest join-parser
     (testing "Join deve retornar dados na estrutura correta"
         (is (= (count (get-tokens (parse-join (parse-data-source (parse-columns (parse-operation (tokenize operacao-com-colunas))))))) 0))
-        (is (= ((second (parse-join(parse-data-source (parse-columns (parse-operation (tokenize operacao-com-colunas))))))  :type) :inner))
-        (is (= ((second (parse-join(parse-data-source (parse-columns (parse-operation (tokenize operacao-com-colunas))))))  :table) "OTHER_THING"))
+        (println (parse-join (parse-data-source (parse-columns (parse-operation (tokenize operacao-com-colunas))))))
+        (is (= ((get-flat-tree ((parse-join (parse-data-source (parse-columns (parse-operation (tokenize operacao-com-colunas))))))) :join) :inner))
+        (is (= ((get-flat-tree (parse-join (parse-data-source (parse-columns (parse-operation (tokenize operacao-com-colunas))))))  :table) "OTHER_THING"))
     )
 )
