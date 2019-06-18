@@ -4,4 +4,4 @@
 
 ; main function
 (defn -main [sql-stmt]
-  (json/pprint (get (parse sql-stmt) 1)))
+  (json/pprint (parse sql-stmt)))

@@ -73,12 +73,17 @@
       (parse-conditions  [(rest (rest (get-tokens state))) (assoc (get-flat-tree state) :conditions [(build-conditions-map (second (get-tokens state)))])]))
     ;return original state array
     [(get-tokens state) (get-flat-tree state)]))
+
+
+(defn generate-tree [flat-tree]
+   { :select [{ :columns (flat-tree :campos) :data-source (flat-tree :data-source) :where (flat-tree :conditions)}]}
+)  
    
 
 
 (defn parse [sql-stmt]
-  (parse-conditions
+  (generate-tree (get-flat-tree (parse-conditions
   (parse-data-source
   (parse-columns 
   (parse-operation 
-    (tokenize sql-stmt))))))
+    (tokenize sql-stmt))))))))
