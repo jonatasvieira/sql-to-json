@@ -25,4 +25,13 @@
 
 (deftest data-source-parser
 (testing "Fonte dos dados deve ser trazida corretamente"
+    (is (= (count (get-tokens (parse-data-source (parse-columns (parse-operation (tokenize operacao-com-colunas)))))) 0))
     (is (= ((second (parse-data-source (parse-columns (parse-operation (tokenize operacao-com-colunas))))) :data-source) "SOMETHING"))))
+
+(deftest join-parser
+    (testing "Join deve retornar dados na estrutura correta"
+        (is (= (count (get-tokens (parse-join (parse-data-source (parse-columns (parse-operation (tokenize operacao-com-colunas))))))) 0))
+        (is (= ((second (parse-join(parse-data-source (parse-columns (parse-operation (tokenize operacao-com-colunas))))))  :type) :inner))
+        (is (= ((second (parse-join(parse-data-source (parse-columns (parse-operation (tokenize operacao-com-colunas))))))  :table) "OTHER_THING"))
+    )
+)
