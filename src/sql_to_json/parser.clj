@@ -18,7 +18,7 @@
 (defn get-tokens [state] (get state 0))
 (defn get-flat-tree [state] (get state 1))
 
-(defn remover-caracteres-especiais [string] (str/replace string  #"[,;]" "") )
+(defn remove-especial-characters [string] (str/replace string  #"[,;]" "") )
 
 ;Define nome da operação
 (defn parse-operation [state]
@@ -32,7 +32,7 @@
     (if (= (first (get-tokens state)) "FROM") 
     [ (get-tokens state) (assoc (get-flat-tree state) :campos vet)]
     (extract-columns [(rest (get-tokens state)) (get-flat-tree state)] 
-                    :vet (conj vet {:field (remover-caracteres-especiais(first (get-tokens state))) }))
+                    :vet (conj vet {:field (remove-especial-characters (first (get-tokens state))) }))
     ) 
 )
 
@@ -46,7 +46,7 @@
 
 (defn parse-data-source [state]
   (if (= (first (get-tokens state)) "FROM")
-    [(rest (rest (get-tokens state)))   (assoc (get-flat-tree state) :data-source (remover-caracteres-especiais (second (get-tokens state))))]
+    [(rest (rest (get-tokens state)))   (assoc (get-flat-tree state) :data-source (remove-especial-characters (second (get-tokens state))))]
     (throw "Operador FROM não informado.")
   )
 )
@@ -77,13 +77,28 @@
 
 (defn generate-tree [flat-tree]
    { :select [{ :columns (flat-tree :campos) :data-source (flat-tree :data-source) :where (flat-tree :conditions)}]}
-)  
-   
+)
 
+(defn add-item-group-params [state]
+  (if (not-empty (get (get-tokens state) :group-by))
+    (assoc :group-by (get (get-flat-tree :group-by)) (first (rest (get-tokens state))))
+    {:group-by (conj [] (first (rest (get-tokens state))))}))
+
+(defn parse-group-by [state]
+  (cond 
+    (= (first (get-tokens state)) "GROUP")  (parse-group-by [(rest (get-tokens state)) (get-flat-tree state)])
+
+    (= (first (get-tokens state)) "BY")  (parse-group-by [(rest (get-tokens state)) (assoc (get-flat-tree state) :group-by (add-item-group-params state))])
+      
+    :else (print "Unexpected token %s" (first (get-tokens state)))))
 
 (defn parse [sql-stmt]
-  (generate-tree (get-flat-tree (parse-conditions
-  (parse-data-source
-  (parse-columns 
-  (parse-operation 
-    (tokenize sql-stmt))))))))
+  (-> sql-stmt
+    tokenize
+    parse-operation
+    parse-columns
+    parse-data-source
+    parse-conditions
+    get-flat-tree
+    generate-tree
+  ))
