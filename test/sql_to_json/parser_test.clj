@@ -2,7 +2,14 @@
     (:require [clojure.test :refer :all]
     [clojure.string :as str]
               [sql-to-json.parser :refer :all]))
- 
+
+(extract-columns [["COLUNA_1," "COLUNA_2", "FROM" "TABELA_1"] {:operacao :select}])  ;Teste do método
+
+;Expressão testada
+(def operacao-mais-simples  "SELECT * FROM SOMETHING;")
+(def operacao-com-colunas  "SELECT CAMPO_1, CAMPO_2 FROM SOMETHING;")
+
+(defn teste [& {:keys [var]  :or {var 10}}] var) ;Exemplo de parâmetro opcional
 
 (deftest evaluator-tokenize
     (testing "Expressão deve ser quebrada corretamente"
