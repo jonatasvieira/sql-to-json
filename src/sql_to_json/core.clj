@@ -1,6 +1,7 @@
-(ns sql-to-json.core)
+(ns sql-to-json.core
+  (:require [sql-to-json.parser :refer :all]
+  [clojure.data.json :as json]))
 
-(defn foo
-  "I don't do a whole lot."
-  [x]
-  (println x "Hello, World!"))
+; main function
+(defn -main [sql-stmt]
+  (json/pprint (parse sql-stmt)))
