@@ -51,7 +51,7 @@
 
 (defn parse-data-source [state]
   (if (= (first (get-tokens state)) "FROM")
-    [(rest (rest (get-tokens state)))   (assoc (get-flat-tree state) :data-source (remover-caracteres-especiais (second (get-tokens state))))]
+    [(rest (rest (get-tokens state)))   (assoc (get-flat-tree state) :data-source (remove-especial-characters (second (get-tokens state))))]
     (throw "Operador FROM não informado.")
   )
 )
@@ -62,21 +62,21 @@
 
 (defn parse-condicao [tokens]
   (if (is-valid-condition tokens)
-    { :field (first tokens) 
-      :operator (operandos-3-parametros (second tokens)) 
-      :value (get-condition-value (second tokens) (nth tokens 3)) 
+    { :campo (first tokens) 
+      :operador (operandos-3-parametros (second tokens)) 
+      :valor (get-condition-value (second tokens) (nth tokens 2)) 
     }
-    (throw "Condição específicada não é válida.")
+    (throw (Exception. "Condição específicada não é válida."))
   )
 )
 
 (defn parse-inner-join-conditions [tokens]
   (loop [block tokens condicoes []]
     (when (>= (count block) 3) 
-      (assoc condicoes (parse-condicao block))
-      (if (= (nth block 4) "AND" ) 
-        (recur (subvec block 4) condicoes) ;Processa condições enquanto encontrar operador "AND"
-        [ block {:join {:condicoes condicoes }}]
+      ;(conj condicoes {:campo ("VAL_1")})
+      (if (= (nth block 4 nil) "AND" ) 
+        (recur (subvec block 4) (conj condicoes (parse-condicao block))) ;Processa condições enquanto encontrar operador "AND"
+        [ (vec (nthrest block 4)) {:join {:condicoes (conj condicoes (parse-condicao block)) }}]
       )
     )
   )
@@ -86,11 +86,11 @@
   (if (not (= (second (get-tokens state)) "JOIN"))
     [(get-tokens state) (get-flat-tree state)] ;Caso não possua join, retorna os valores sem alteração
     (cond
-      (not (= (nth (get-tokens state) 4) "ON")) (throw "Join precisa de ao menos uma condição")
+      (not (= (nth (get-tokens state) 3) "ON")) (print (nth (get-tokens state) 3))
       (= (first (get-tokens state))  "INNER") ((fn [exp]
                     [
                       (get-tokens exp)
-                      (assoc (get-flat-tree state) :join {:condicoes (get-flat-tree exp) :type :inner :table (nth (get-tokens state) 3) } )
+                      (assoc (get-flat-tree state) :join {:condicoes (get-flat-tree exp) :type :inner :table (nth (get-tokens state) 2) } )
                     ])
                     (parse-inner-join-conditions (subvec (get-tokens state) 4))
       )
@@ -98,9 +98,6 @@
   )
 )
 
-;Expressão testada
-(def operacao-mais-simples  "SELECT * FROM SOMETHING;")
-(def operacao-com-colunas  "SELECT CAMPO_1, CAMPO_2 FROM SOMETHING;")
 ;Retorna os tres elementos passados (ex. id=10 é retornado como ["id" "=" "10"]
 (defn extract-condition [cond-stmt]
   (def operation (get-operation cond-stmt))
@@ -118,9 +115,9 @@
 (defn parse-conditions [state]
   (if (or (= (first (get-tokens state)) "WHERE") (= (first (get-tokens state)) "AND"))
     (if  (contains? (get-flat-tree state) :conditions)
-      (parse-conditions [(rest (rest (get-tokens state))) (assoc (get-flat-tree state) :conditions (conj (get (get-flat-tree state) :conditions) (build-conditions-map (second (get-tokens state)))))])
+      (parse-conditions [(nthrest (get-tokens state) 2) (assoc (get-flat-tree state) :conditions (conj (get (get-flat-tree state) :conditions) (build-conditions-map (second (get-tokens state)))))])
       ; returns one condition state
-      (parse-conditions  [(rest (rest (get-tokens state))) (assoc (get-flat-tree state) :conditions [(build-conditions-map (second (get-tokens state)))])]))
+      (parse-conditions  [(nthrest (get-tokens state) 2) (assoc (get-flat-tree state) :conditions [(build-conditions-map (second (get-tokens state)))])]))
     ;return original state array
     [(get-tokens state) (get-flat-tree state)]))
 

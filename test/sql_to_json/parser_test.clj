@@ -8,6 +8,7 @@
 ;Expressão testada
 (def operacao-mais-simples  "SELECT * FROM SOMETHING;")
 (def operacao-com-colunas  "SELECT CAMPO_1, CAMPO_2 FROM SOMETHING;")
+(def operacao-com-join "SELECT CAMPO_1, CAMPO_2 FROM SOMETHING INNER JOIN OTHER_THING ON CAMPO_1 = CAMPO_3")
 
 (defn teste [& {:keys [var]  :or {var 10}}] var) ;Exemplo de parâmetro opcional
 
@@ -35,11 +36,21 @@
     (is (= (count (get-tokens (parse-data-source (parse-columns (parse-operation (tokenize operacao-com-colunas)))))) 0))
     (is (= ((second (parse-data-source (parse-columns (parse-operation (tokenize operacao-com-colunas))))) :data-source) "SOMETHING"))))
 
+(deftest condition-parser 
+(testing "Condições devem ser parseadas corretamente"
+    (is (= ((parse-condicao ["VAL_1" "=" "VAL_2"]) :campo) "VAL_1"))
+    (is (= ((parse-condicao ["VAL_1" "=" "VAL_2"]) :operador)  (operandos-3-parametros "=")))
+    (is (= ((parse-condicao ["VAL_1" "=" "VAL_2"]) :valor)  "VAL_2"))
+
+))
+
 (deftest join-parser
     (testing "Join deve retornar dados na estrutura correta"
-        (is (= (count (get-tokens (parse-join (parse-data-source (parse-columns (parse-operation (tokenize operacao-com-colunas))))))) 0))
-        (println (parse-join (parse-data-source (parse-columns (parse-operation (tokenize operacao-com-colunas))))))
-        (is (= ((get-flat-tree ((parse-join (parse-data-source (parse-columns (parse-operation (tokenize operacao-com-colunas))))))) :join) :inner))
-        (is (= ((get-flat-tree (parse-join (parse-data-source (parse-columns (parse-operation (tokenize operacao-com-colunas))))))  :table) "OTHER_THING"))
+        (is (= (-> (get-flat-tree (parse-inner-join-conditions ["VAL_1" "=" "VAL_2"])) :join :condicoes first :campo) "VAL_1"))
+        (is (= (-> (get-flat-tree (parse-inner-join-conditions ["VAL_1" "=" "VAL_2"])) :join :condicoes first :operador) :eq))
+        (is (= (-> (get-flat-tree (parse-join [["INNER" "JOIN" "TABELA_TESTE" "ON" "VAL_1" "=" "VAL_2"]  '{}])) :join :tabela) "OTHER_THING"))
+        ;(is (= (count (get-tokens (parse-join (parse-data-source (parse-columns (parse-operation (tokenize operacao-com-join))))))) 0))        
+        ;(is (= ((get-flat-tree ((parse-join (parse-data-source (parse-columns (parse-operation (tokenize operacao-com-join))))))) :join) :inner))
+        ;(is (= ((get-flat-tree (parse-join (parse-data-source (parse-columns (parse-operation (tokenize operacao-com-join))))))  :tabela) "OTHER_THING"))
     )
 )
